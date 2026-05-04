@@ -12,7 +12,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-TMDB_KEY = ""          # получи на themoviedb.org
+TMDB_KEY = "c925fc7279be6401180a09d59708a916"          # получи на themoviedb.org
 TELEGRAM_LINK = "https://t.me/flic_channel"
 
 @app.get("/api/search")
