@@ -16,7 +16,6 @@ app.add_middleware(
 TMDB_API_KEY = "c925fc7279be6401180a09d59708a916"
 TELEGRAM_LINK = "https://t.me/flic_channel"
 
-# Функция для поиска embed_url на seasonvar.ru
 async def find_embed_url(query: str):
     search_url = f"https://seasonvar.ru/search/?q={quote(query)}"
     async with httpx.AsyncClient() as client:
@@ -40,66 +39,52 @@ async def find_embed_url(query: str):
 
 @app.get("/api/search")
 async def search(query: str = Query(..., min_length=1)):
-    # 1. Ищем плеер для точного запроса (например, "очень странные дела")
+    # 1. Ищем плеер
     embed_url = await find_embed_url(query)
     
-    # 2. Если не нашли, пробуем транслитерировать или перевести на английский
-    #    (для "очень странные дела" -> "stranger things")
-    alt_query = None
-    if query.lower() == "очень странные дела":
-        alt_query = "stranger things"
-    elif query.lower() == "эйфория":
-        alt_query = "euphoria"
-    
-    if alt_query and not embed_url:
-        embed_url = await find_embed_url(alt_query)
-    
-    # 3. Ищем в TMDB (по оригинальному запросу или альтернативному)
-    search_query = alt_query if alt_query else query
+    # 2. Ищем в TMDB (фильмы)
     tmdb_params = {
         "api_key": TMDB_API_KEY,
-        "query": search_query,
+        "query": query,
         "language": "ru-RU"
     }
-    movies = []
+    all_results = []
+    
     async with httpx.AsyncClient() as client:
-        tmdb_resp = await client.get("https://api.themoviedb.org/3/search/movie", params=tmdb_params)
-        if tmdb_resp.status_code == 200:
-            results = tmdb_resp.json().get("results", [])
-            for item in results:
+        # Фильмы
+        movie_resp = await client.get("https://api.themoviedb.org/3/search/movie", params=tmdb_params)
+        if movie_resp.status_code == 200:
+            for item in movie_resp.json().get("results", []):
                 poster = f"https://image.tmdb.org/t/p/w500{item['poster_path']}" if item.get("poster_path") else None
-                movies.append({
+                all_results.append({
                     "title": f"{item['title']} ({item.get('release_date', '')[:4]})",
+                    "type": "movie",
                     "embed_url": embed_url,
                     "poster": poster,
                     "year": item.get("release_date", "")[:4],
                     "overview": item.get("overview"),
                     "tmdb_id": item["id"]
                 })
+        
+        # Сериалы
+        tv_resp = await client.get("https://api.themoviedb.org/3/search/tv", params=tmdb_params)
+        if tv_resp.status_code == 200:
+            for item in tv_resp.json().get("results", []):
+                poster = f"https://image.tmdb.org/t/p/w500{item['poster_path']}" if item.get("poster_path") else None
+                all_results.append({
+                    "title": f"{item['name']} ({item.get('first_air_date', '')[:4]})",
+                    "type": "tv",
+                    "embed_url": embed_url,
+                    "poster": poster,
+                    "year": item.get("first_air_date", "")[:4],
+                    "overview": item.get("overview"),
+                    "tmdb_id": item["id"]
+                })
     
-    # Если TMDB ничего не нашёл, пробуем поиск сериалов (через другой эндпоинт)
-    if not movies:
-        tmdb_tv_params = {
-            "api_key": TMDB_API_KEY,
-            "query": search_query,
-            "language": "ru-RU"
-        }
-        async with httpx.AsyncClient() as client:
-            tmdb_resp = await client.get("https://api.themoviedb.org/3/search/tv", params=tmdb_tv_params)
-            if tmdb_resp.status_code == 200:
-                results = tmdb_resp.json().get("results", [])
-                for item in results:
-                    poster = f"https://image.tmdb.org/t/p/w500{item['poster_path']}" if item.get("poster_path") else None
-                    movies.append({
-                        "title": f"{item['name']} ({item.get('first_air_date', '')[:4]})",
-                        "embed_url": embed_url,
-                        "poster": poster,
-                        "year": item.get("first_air_date", "")[:4],
-                        "overview": item.get("overview"),
-                        "tmdb_id": item["id"]
-                    })
+    # Сортируем по году (новые сверху)
+    all_results.sort(key=lambda x: x["year"], reverse=True)
     
-    return {"movies": movies, "telegram": TELEGRAM_LINK}
+    return {"results": all_results, "telegram": TELEGRAM_LINK}
 
 @app.get("/")
 def root():
