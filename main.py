@@ -17,10 +17,6 @@ TELEGRAM_LINK = "https://t.me/flic_channel"
 # ========== РУЧНАЯ БАЗА СЕРИАЛОВ ==========
 # Формат: "ключ для поиска": {"id": ID, "slug": "часть URL после ID-"}
 SERIALS_DB = {
-    "очень странные дела": {
-        "id": 13913,
-        "slug": "Ochen__strannye_dela_pshyukv-1-season"
-    },
     "очень странные дела 1 сезон": {
         "id": 13913,
         "slug": "Ochen__strannye_dela_pshyukv-1-season"
@@ -41,10 +37,6 @@ SERIALS_DB = {
         "id": 41230,
         "slug": "Ochen__strannye_dela_psinyso-5-season"
     },
-    "эйфория": {
-        "id": 22047,
-        "slug": "Ejforiya_psxmtkb-000-sezon"
-    },
     "эйфория 1 сезон": {
         "id": 22047,
         "slug": "Ejforiya_psxmtkb-000-sezon"
@@ -60,11 +52,9 @@ SERIALS_DB = {
 }
 
 def make_tv_page_url(serial_id: int, slug: str) -> str:
-    """Формирует полную ссылку на страницу сериала"""
     return f"https://seasonvar.ru/serial-{serial_id}-{slug}.html"
 
 async def get_tmdb_data(query: str):
-    """Ищет сериал в TMDB и возвращает постер, описание, год"""
     search_url = "https://api.themoviedb.org/3/search/tv"
     params = {"api_key": TMDB_API_KEY, "query": query, "language": "ru-RU"}
     async with httpx.AsyncClient() as client:
@@ -86,12 +76,9 @@ async def get_tmdb_data(query: str):
 async def search(query: str = Query(..., min_length=1)):
     query_lower = query.lower().strip()
     
-    # 1. Проверяем ручную базу
     if query_lower in SERIALS_DB:
         serial_info = SERIALS_DB[query_lower]
         tv_page_url = make_tv_page_url(serial_info["id"], serial_info["slug"])
-        
-        # 2. Получаем данные из TMDB
         tmdb_data = await get_tmdb_data(query_lower)
         
         return {
@@ -105,7 +92,6 @@ async def search(query: str = Query(..., min_length=1)):
             "telegram": TELEGRAM_LINK
         }
     
-    # 3. Если не нашли
     return {
         "result": None,
         "telegram": TELEGRAM_LINK,
