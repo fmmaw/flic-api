@@ -17,6 +17,10 @@ TELEGRAM_LINK = "https://t.me/flic_channel"
 # ========== РУЧНАЯ БАЗА СЕРИАЛОВ ==========
 # Формат: "ключ для поиска": {"id": ID, "slug": "часть URL после ID-"}
 SERIALS_DB = {
+    "очень странные дела": {
+        "id": 13913,
+        "slug": "Ochen__strannye_dela_pshyukv-1-season"
+    },
     "очень странные дела 1 сезон": {
         "id": 13913,
         "slug": "Ochen__strannye_dela_pshyukv-1-season"
@@ -36,6 +40,10 @@ SERIALS_DB = {
     "очень странные дела 5 сезон": {
         "id": 41230,
         "slug": "Ochen__strannye_dela_psinyso-5-season"
+    },
+    "эйфория": {                        # ← ДОБАВИТЬ
+        "id": 22047,
+        "slug": "Ejforiya_psxmtkb-000-sezon"
     },
     "эйфория 1 сезон": {
         "id": 22047,
